@@ -1378,8 +1378,8 @@ local candyDefs={
     {col=1,row=3,key="reset",label="RESET"},
     {col=2,row=3,key="tpDown",label="TP\nDOWN"},
     {col=3,row=3,key="speed",label="CARRY\nSPD"},
-    {col="},
-    {col="},
+    
+    
 }
 
 local GRID_COLS=3
