@@ -152,7 +152,7 @@ mainFrame.ClipsDescendants = true
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
 local bgImage = Instance.new("ImageLabel", mainFrame)
-bgImage.Image = "rbxassetid://104070936675306"
+bgImage.Image = ""
 bgImage.Size = UDim2.new(1, 0, 1, 0)
 bgImage.BackgroundTransparency = 1
 bgImage.ZIndex = 0
@@ -540,7 +540,7 @@ local function spawnDiscordTag(char)
     local lbl = Instance.new("TextLabel", bb)
     lbl.Size = UDim2.new(1, 0, 1, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = "discord.gg/k7hub"
+    lbl.Text = ""
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 14
     lbl.TextStrokeTransparency = 0.5
