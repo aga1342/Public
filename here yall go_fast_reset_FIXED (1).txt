@@ -662,7 +662,7 @@ local sidebarWM = Instance.new("TextLabel", sidebarCanvas)
 sidebarWM.Size = UDim2.new(0, SIDEBAR_W - 16, 1, 0)
 sidebarWM.Position = UDim2.new(0, 8, 0, 0)
 sidebarWM.BackgroundTransparency = 1
-sidebarWM.Text = "MachoHUB"
+sidebarWM.Text = "JSMDUELS"
 sidebarWM.TextColor3 = WHITE
 sidebarWM.TextTransparency = 0.9
 sidebarWM.Font = Enum.Font.GothamBlack
@@ -694,7 +694,7 @@ local brandTitle = Instance.new("TextLabel", brandFrame)
 brandTitle.Size = UDim2.new(1, 0, 0, 20)
 brandTitle.Position = UDim2.new(0, 0, 0, 0)
 brandTitle.BackgroundTransparency = 1
-brandTitle.Text = "MACHOHUB"
+brandTitle.Text = "JSMDUELS"
 brandTitle.TextColor3 = WHITE
 brandTitle.Font = Enum.Font.GothamBold
 brandTitle.TextSize = 16
@@ -704,7 +704,7 @@ local brandSub = Instance.new("TextLabel", brandFrame)
 brandSub.Size = UDim2.new(1, 0, 0, 12)
 brandSub.Position = UDim2.new(0, 0, 0, 34)
 brandSub.BackgroundTransparency = 1
-brandSub.Text = "v1.6"
+brandSub.Text = "v1"
 brandSub.TextColor3 = PINK_LIGHT
 brandSub.Font = Enum.Font.Gotham
 brandSub.TextSize = 9
@@ -771,7 +771,7 @@ miniToggleBtn.Position = UDim2.new(0.5, -70, 0, 75)
 miniToggleBtn.BackgroundColor3 = PINK_BG
 miniToggleBtn.BackgroundTransparency = 0
 miniToggleBtn.BorderSizePixel = 0
-miniToggleBtn.Text = "MACHOHUB"
+miniToggleBtn.Text = "JSMDUELS"
 miniToggleBtn.TextColor3 = WHITE
 miniToggleBtn.Font = Enum.Font.GothamBold
 miniToggleBtn.TextSize = 18
@@ -1354,7 +1354,7 @@ do
     local il=Instance.new("TextLabel",row)
     il.Size=UDim2.new(1,0,1,0)
     il.BackgroundTransparency=1
-    il.Text="MACHOHUB v1.6"
+    il.Text="JSMDUELS v1"
     il.TextColor3=PINK_DARK
     il.Font=Enum.Font.GothamBold
     il.TextSize=13
@@ -1378,8 +1378,8 @@ local candyDefs={
     {col=1,row=3,key="reset",label="RESET"},
     {col=2,row=3,key="tpDown",label="TP\nDOWN"},
     {col=3,row=3,key="speed",label="CARRY\nSPD"},
-    {col=2,row=4,key="lagger",label="LAGGER\n1"},
-    {col=3,row=4,key="laggerCarry",label="LAGGER\n2"},
+    {col="},
+    {col="},
 }
 
 local GRID_COLS=3
@@ -3321,7 +3321,7 @@ sg.IgnoreGuiInset = true
 sg.Parent = lp:WaitForChild("PlayerGui")
 
 local lbl = Instance.new("TextLabel")
-lbl.Text = "discord.gg/irish"
+lbl.Text = "discord.gg/TpDyy7GZr"
 lbl.Size = UDim2.new(0, 360, 0, 50)
 lbl.AnchorPoint = Vector2.new(0.5, 1)
 lbl.BackgroundTransparency = 1
