@@ -1383,7 +1383,7 @@ local candyDefs={
 }
 
 local GRID_COLS=3
-local GRID_ROWS=4
+local GRID_ROWS=3
 local GRID_W=GRID_COLS*(BW+COL_GAP)-COL_GAP
 local GRID_H=GRID_ROWS*(BH+ROW_GAP)-ROW_GAP
 
