@@ -9,7 +9,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 local API_URL =
-    "https://midnightblue-vigorous-titles--random3220100es.replit.app/api/hook/88zFizFMLCW183DdxuEA4QVgRSOjXT3D/latest?cache=606795352"
+    "https://autojoiner2-2d181-default-rtdb.firebaseio.com/logs.json"
 
 local enabled = false
 local lastPlaceId = nil
